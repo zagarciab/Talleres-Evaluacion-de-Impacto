@@ -106,7 +106,7 @@ b)  Una regresión simple de la variable dependiente contra la independiente pri
 
 ```{r}
 # Convertir a factor
-base$GradoSecundaria <- as_factor(base$GradoSecundaria) 
+base$GradoSecundaria <- as.factor(base$GradoSecundaria) 
 
 # Regresión por MCO con controles
 lm2 <- lm (prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG , base)
@@ -139,10 +139,40 @@ m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + Already
 summary(m_ef2)
 ```
 
+Modelo extra con solo prop ~ Corrupt + grade
+
+
+```{r}
+# Modelo de efectos fijos extra con solo grado de control (within estimator)
+m_extra <- plm(prop ~ Corrupt + GradoSecundaria, 
+                   data = m_base, 
+                   model = "within")
+
+summary(m_extra)
+```
+
+
 Tabla de resultados de las estimaciones de los puntos a, b, c, d.
 
 ```{r}
-# La tabla debe tener el formato de presentación tipo artículo y estar completamente en español. Asegúrense de que esta tabla presente únicamente el coeficiente asociado a la variable de interés – i.e., no presente los coeficientes asociados a los controles, el intercepto o los efectos fijos. Debe ser claro, sin embargo, qué es incluido en cada columna. 
+
+library(stargazer)
+
+stargazer(lm1, lm2, m_ef1, m_extra,
+          type = "text",              # Cambiar a "html" o "latex" si quieres
+          keep = "Corrupt",           # Solo muestra el coeficiente de interés
+          column.labels = c("(1)", "(2)", "(3)", "(4)"),
+          dep.var.labels = "Proporción",
+          covariate.labels = "Corrupción",
+          digits = 3,
+          no.space = TRUE,
+          title = "Resultados de las regresiones",
+          add.lines = list(
+            c("Controles", "No", "Sí", "No", "Sí"),
+            c("Efectos fijos", "No", "No", "Sí", "Sí")
+          ),
+          notes = "Errores estándar entre paréntesis. Solo se reporta el coeficiente de 'Corrupt'.")
+
 ```
 
 ### 3. Interpretación de resultados
