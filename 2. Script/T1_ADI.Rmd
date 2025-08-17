@@ -19,7 +19,9 @@ install.packages("plm")
 library(plm)
 
 # Datos .dta
-base <- read_dta(".../corruption_SV.dta") # AJUSTAR
+url_data <- "https://github.com/zagarciab/T1_ADI/raw/main/3.%20Data/corruption_SV.dta"
+
+base <- read_dta(url_data)
 ```
 
 ### 1. Especificación de la regresión
@@ -89,9 +91,6 @@ Donde, los efectos fijos son:
 Términos adicionales:
 
 -   $β_0$ es la constante del modelo.
-
-<!-- -->
-
 -   $ε_{is}$ corresponde al término del error que captura todas las variables no observadas que afectan a la proporción de estudiantes que hacen trampa.
 
 ### 2. Resultados de estimación de regresiones
@@ -131,6 +130,7 @@ summary(m_ef1)
 d)  Una regresión simple de la variable depediente contra la independiente principal + controles + efectos fijos
 
 ```{r}
+# Corregir, hay multicolinealidad perfecta
 
 m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG, 
                    data = m_base, 
