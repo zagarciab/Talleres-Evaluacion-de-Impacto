@@ -1,0 +1,172 @@
+---
+title: "Taller 1 - Regresión e Interpretación Causal"
+author: "Nicolas Jacome Velasco, Zaira Alejandra Garcia Bernal"
+date: "2025-08-16"
+output: pdf_document
+---
+
+# Evaluación de Impacto
+
+## Taller 1: Regresión e Interpretación Causal
+
+### 0. Carga de datos y paquetes
+
+```{r}
+# Liberias y paquetes
+install.packages("haven") # Archivos .dta
+library(haven)
+install.packages("plm")
+library(plm)
+
+# Datos .dta
+base <- read_dta(".../corruption_SV.dta") # AJUSTAR
+```
+
+### 1. Especificación de la regresión
+
+La especificación principal del autor consiste en regresar la proporción de estudiantes que hicieron trampa en el colegio *c*, en el grado *g*, del municipio *m* en el año *t* (prop) contra:
+
+a)  Una dicotómica que toma el valor de uno si hubo corrupción en el municipio *m* en el año *t* (*Corrupt*).
+
+b)  una dicotómica que toma el valor de uno si fueron publicados reportes de auditorías en el municipio *m* en el año *t* (*Auditada*).
+
+    *según el autor, las auditorías fueron llevadas a cabo con el fin de investigar si en la contratación pública hubo ejecuciones o gastos no autorizados que pueden ser enmarcados como corrupción. Así, cuando se publica un reporte de auditoría se sabe si hubo o no corrupción en un contrato en el pasado.*
+
+c)  Efectos fijos de colegio (*clavedelaescuela*).
+
+d)  Efectos fijos de tiempo (*year*).
+
+e)  El grado de los estudiantes (*grade*).
+
+f)  El partido político activo (*PartidoDesf).*
+
+g)  Una dicotómica que toma el valor de uno si el municipio fue auditado en el pasado (*AlredyAudited*).
+
+h)  Una dicotómica que toma el valor de uno si el municipio fue corrupto en el pasado (*CorruptPast*).
+
+i)  El número de homicidios per cápita a nivel de municipio-año *(HOMI_CAP_MUN).*
+
+j)  El logaritmo total de impuestos recolectados en el municipio *m* el año *t* (total).
+
+    *La variable en la base de datos está en niveles. Ustedes deben crear el logaritmo de la variable.*
+
+k)  Una dicotómica que toma el valor de uno su el partido político del municipio *m* en el año *t* está alineado con el nacional (*MismoPartidoG*).
+
+Con lo anterior, se puede realizar una aproximación matemática de la regresión que el autor indica como:
+
+$$Prop_{sgmt}=β_0+β_1 Corrupt_{mt}+β_2 Auditada_{mt}+X_{smgt}Γ+λ_s+ δ_t + ε_{is}$$ Donde la variable dependiente:
+
+-   $Prop_{sgmt}$ caputura la proporción de estudiantes que hicieron trampa. Está a nivel colegio *(s)*, grado *(g)*, municipio *(m)* y año *(t)*.
+
+Donde los parámetros y variables de interés son:
+
+-   $Corrupt_{mt}$ corresponde a la variable de interés dicotómica que indica uno si hubo corrupción. Su nivel de agregación es municipio *(m)* y año *(t)*.
+
+-   $Auditada_{mt}$ corresponde a la variable dicotómica que indica si hubo reportes de auditoria. Su nivel de agregación es municipio *(m)* y año *(t)*.
+
+-   $β_1$ y $β_2$ son los parámetros de interés que responden a la pregunda de investigación, los cuales miden el efecto de la corrupción y las auditorías, respectivamente, sobre la proporción de estudiantes que hacen trampa.
+
+Variables de control:
+
+-   $X_{smgt}Γ$ corresponde a un vector de controles y sus coeficientes correspondientes. Este vector contiene:
+
+    -   $grade_{gt}$ es el grado (nota) de los estudiantes, a nivel grado *(grado)* y año *(t)*.
+
+    -   $PartidoDesf_{mt}$ es el partido político activo, a nivel municipio *(m)* y año *(t)*.
+
+    -   $AlredyAudited_{mt}$ es binaria, que toma uno para las auditorías anteriores a la fecha, a nivel municipio *(m)* y año *(t)*.
+
+    -   $CorruptPast_{mt}$ es binaria que toma uno para corrupción en el pasado, a nivel municipio *(m)* y año *(t)*.
+
+    -   $HOMI _ CAP _ MUN_{mt}$ son homicidios per cápita, a nivel municipio *(m)* y año *(t)*.
+
+Donde, los efectos fijos son:
+
+-   $λ_s$ corresponde a efectos fijos a nivel de colegio *s*. Controla por todas las características no observadas que son constantes en el tiempo dentro de cada colegio *(clavedelaescuela)*
+
+-   $δ_t$ corresponde a los efectos fijos del tiempo *(year)*. Controla por todas las características no observadas que son comunes a todos los colegios en un año determinado a nivel de año *(t)*.
+
+Términos adicionales:
+
+-   $β_0$ es la constante del modelo.
+
+<!-- -->
+
+-   $ε_{is}$ corresponde al término del error que captura todas las variables no observadas que afectan a la proporción de estudiantes que hacen trampa.
+
+### 2. Resultados de estimación de regresiones
+
+a)  Una regresión simple de la variable dependiente contra la independiente principal
+
+```{r}
+lm1<- lm (prop ~ Corrupt, base)
+summary(lm1)
+```
+
+b)  Una regresión simple de la variable dependiente contra la independiente principal + controles
+
+```{r}
+# Convertir a factor
+base$GradoSecundaria <- as_factor(base$GradoSecundaria) 
+
+# Regresión por MCO con controles
+lm2 <- lm (prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG , base)
+summary(lm2)
+```
+
+c)  Una regresión simple de la variable dependiente contra la independiente principal + efectos fijos
+
+```{r}
+# Matriz con efectos fijos 
+m_base <- pdata.frame(base, index = c("clavedelaescuela", "year"))
+
+# Modelo de efectos fijos (within estimator)
+m_ef1 <- plm(prop ~ Corrupt, 
+                   data = m_base, 
+                   model = "within")
+
+summary(m_ef1)
+```
+
+d)  Una regresión simple de la variable depediente contra la independiente principal + controles + efectos fijos
+
+```{r}
+
+m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG, 
+                   data = m_base, 
+                   model = "within")
+
+summary(m_ef2)
+```
+
+Tabla de resultados de las estimaciones de los puntos a, b, c, d.
+
+```{r}
+# La tabla debe tener el formato de presentación tipo artículo y estar completamente en español. Asegúrense de que esta tabla presente únicamente el coeficiente asociado a la variable de interés – i.e., no presente los coeficientes asociados a los controles, el intercepto o los efectos fijos. Debe ser claro, sin embargo, qué es incluido en cada columna. 
+```
+
+### 3. Interpretación de resultados
+
+Interpretar los resultados encontrados a partir de la primera regresión (estimación punto 2, inciso b)
+
+**¿Parece haber una relación entre la corrupción política y la trampa de los estudiantes?**
+
+------------------------------------------------------------------------
+
+**¿Podemos interpretar esta relación como causal?**
+
+------------------------------------------------------------------------
+
+**¿Cuál sería el supuesto de identificación?**
+
+------------------------------------------------------------------------
+
+### 4. Mejor especificación
+
+A continuación, se elige la regresión (...) la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor ¿....? porque.....
+
+Adiconalmente, para dar respuesta a **¿Cuál es el supuesto de identificación para que esta especificación permita hacer interpretaciones causales?** es posible considerar que.....
+
+### 5. Interpretación de coeficiente estimado
+
+Teniendo en cuenta la especificación anterior (punto 4) se interpreta que el coeficiente estimado es......
