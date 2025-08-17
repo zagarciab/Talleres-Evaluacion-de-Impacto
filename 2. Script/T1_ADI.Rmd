@@ -143,6 +143,7 @@ Modelo extra con solo prop ~ Corrupt + grade
 
 
 ```{r}
+
 # Modelo de efectos fijos extra con solo grado de control (within estimator)
 m_extra <- plm(prop ~ Corrupt + GradoSecundaria, 
                    data = m_base, 
