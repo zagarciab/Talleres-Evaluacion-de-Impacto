@@ -14,51 +14,136 @@ output: pdf_document
 ```{r}
 # Liberias y paquetes
 install.packages("haven") # Archivos .dta
-library(haven)
 install.packages("plm")
-library(plm)
+install.packages("skimr")
+install.packages("dplyr")
+install.packages("ggplot2")
 
-# Datos .dta
+library(haven)
+library(plm)
+library(skimr)
+library(dplyr)
+library(ggplot2)
+
+# Carga de datos .dta
 url_data <- "https://github.com/zagarciab/T1_ADI/raw/main/3.%20Data/corruption_SV.dta"
 
 base <- read_dta(url_data)
 ```
 
+### 0.1 Exploración de los datos
+
+```{r}
+# Estructura de datos y estadísticas
+str(base)
+skim(base)
+
+# Imputación de missing values
+
+## Histogramas
+ggplot(base, aes(prop)) +
+  geom_histogram(color = "#000000", fill = "#0099F8") +
+  geom_vline(xintercept = median(base$prop, na.rm = TRUE), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = mean(base$prop, na.rm = TRUE), linetype = "dashed", color = "blue") + 
+  ggtitle("GRÁFICA 1 - Histograma de Prop ") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 18))
+
+ggplot(base, aes(unauthorized)) +
+  geom_histogram(color = "#000000", fill = "#0099F8") +
+  geom_vline(xintercept = median(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = mean(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "blue") + 
+  ggtitle("GRÁFICA 1 - Histograma de unauthorized ") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 18))
+
+## Imputación de missing values con la mediana para Prop
+base <- base  %>%
+  mutate(prop = ifelse(is.na(prop) == TRUE, 
+                       median(base$prop, na.rm = TRUE) , prop),
+         unauthorized = ifelse(is.na(unauthorized) == TRUE, 
+                       median(base$unauthorized, na.rm = TRUE), 
+                       unauthorized))
+
+## Imputación variables dicotómica con moda 
+moda_auditada <- base %>% 
+  filter(!is.na(Auditada)) %>% 
+  count(Auditada) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(Auditada)
+
+moda_AlreadyAudited <- base %>% 
+  filter(!is.na(AlreadyAudited)) %>% 
+  count(AlreadyAudited) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(AlreadyAudited)
+
+moda_CorruptPast <- base %>% 
+  filter(!is.na(CorruptPast)) %>% 
+  count(CorruptPast) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(CorruptPast)
+
+moda_Corrupt <- base %>% 
+  filter(!is.na(Corrupt)) %>% 
+  count(Corrupt) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(Corrupt)
+
+moda_HOMI <- base %>% 
+  filter(!is.na(HOMI_CAP_MUN)) %>% 
+  count(HOMI_CAP_MUN) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(HOMI_CAP_MUN)
+
+moda_grado <- base %>% 
+  filter(!is.na(GradoSecundaria)) %>% 
+  count(GradoSecundaria) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(GradoSecundaria)
+
+moda_grado <- base %>% 
+  filter(!is.na(GradoSecundaria)) %>% 
+  count(GradoSecundaria) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(GradoSecundaria)
+
+base <- base %>%
+  mutate(Auditada = ifelse(is.na(Auditada) == TRUE, 
+                           moda_auditada, Auditada),
+         AlreadyAudited = ifelse(is.na(AlreadyAudited) == TRUE,
+                                 moda_AlreadyAudited, AlreadyAudited),
+         CorruptPast = ifelse(is.na(CorruptPast) == TRUE, 
+                              moda_CorruptPast, CorruptPast),
+         Corrupt = ifelse(is.na(Corrupt) == TRUE, 
+                          moda_Corrupt, Corrupt),
+         HOMI_CAP_MUN = ifelse(is.na(HOMI_CAP_MUN)  == TRUE, 
+                               moda_HOMI, HOMI_CAP_MUN),
+         GradoSecundaria = ifelse(is.na(GradoSecundaria)  == TRUE, 
+                               moda_grado, GradoSecundaria))
+
+## Convertir a factor variables categoricas
+var_factor <- c("clavedelaescuela", "turno", "GradoSecundaria", "year",
+                "clave_num", "Auditada", "AlredyAudited", "CorruptPast",
+                "Corrupt")
+
+base$GradoSecundaria <- as.factor(base$GradoSecundaria) 
+```
+
 ### 1. Especificación de la regresión
 
-La especificación principal del autor consiste en regresar la proporción de estudiantes que hicieron trampa en el colegio *c*, en el grado *g*, del municipio *m* en el año *t* (prop) contra:
-
-a)  Una dicotómica que toma el valor de uno si hubo corrupción en el municipio *m* en el año *t* (*Corrupt*).
-
-b)  una dicotómica que toma el valor de uno si fueron publicados reportes de auditorías en el municipio *m* en el año *t* (*Auditada*).
-
-    *según el autor, las auditorías fueron llevadas a cabo con el fin de investigar si en la contratación pública hubo ejecuciones o gastos no autorizados que pueden ser enmarcados como corrupción. Así, cuando se publica un reporte de auditoría se sabe si hubo o no corrupción en un contrato en el pasado.*
-
-c)  Efectos fijos de colegio (*clavedelaescuela*).
-
-d)  Efectos fijos de tiempo (*year*).
-
-e)  El grado de los estudiantes (*grade*).
-
-f)  El partido político activo (*PartidoDesf).*
-
-g)  Una dicotómica que toma el valor de uno si el municipio fue auditado en el pasado (*AlredyAudited*).
-
-h)  Una dicotómica que toma el valor de uno si el municipio fue corrupto en el pasado (*CorruptPast*).
-
-i)  El número de homicidios per cápita a nivel de municipio-año *(HOMI_CAP_MUN).*
-
-j)  El logaritmo total de impuestos recolectados en el municipio *m* el año *t* (total).
-
-    *La variable en la base de datos está en niveles. Ustedes deben crear el logaritmo de la variable.*
-
-k)  Una dicotómica que toma el valor de uno su el partido político del municipio *m* en el año *t* está alineado con el nacional (*MismoPartidoG*).
-
-Con lo anterior, se puede realizar una aproximación matemática de la regresión que el autor indica como:
+La especificación principal del autor consiste en regresar la proporción de estudiantes que hicieron trampa en el colegio *c*, en el grado *g*, del municipio *m* en el año *t* (prop) contra variables de control. De tal forma que, se puede realizar una aproximación matemática de la regresión que el Nicolás Ajzeman (2021) indica como:
 
 $$Prop_{sgmt}=β_0+β_1 Corrupt_{mt}+β_2 Auditada_{mt}+X_{smgt}Γ+λ_s+ δ_t + ε_{is}$$ Donde la variable dependiente:
 
--   $Prop_{sgmt}$ caputura la proporción de estudiantes que hicieron trampa. Está a nivel colegio *(s)*, grado *(g)*, municipio *(m)* y año *(t)*.
+-   $Prop_{sgmt}$ caputura la proporción de estudiantes que hicieron trampa. Está a nivel colegio *(s)*, grado *(g)*, municipio *(m)* y año *(t)*. Es un variable numérico entre 0 y 1.
 
 Donde los parámetros y variables de interés son:
 
@@ -72,7 +157,7 @@ Variables de control:
 
 -   $X_{smgt}Γ$ corresponde a un vector de controles y sus coeficientes correspondientes. Este vector contiene:
 
-    -   $grade_{gt}$ es el grado (nota) de los estudiantes, a nivel grado *(grado)* y año *(t)*.
+    -   $grade_{gt}$ es el grado (nota) de los estudiantes, a nivel grado *(grado)* y año *(t)*. **\# corregir**
 
     -   $PartidoDesf_{mt}$ es el partido político activo, a nivel municipio *(m)* y año *(t)*.
 
@@ -105,9 +190,6 @@ summary(lm1)
 b)  Una regresión simple de la variable dependiente contra la independiente principal + controles
 
 ```{r}
-# Convertir a factor
-base$GradoSecundaria <- as.factor(base$GradoSecundaria) 
-
 # Regresión por MCO con controles
 lm2 <- lm (prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG , base)
 summary(lm2)
@@ -122,7 +204,7 @@ m_base <- pdata.frame(base, index = c("clavedelaescuela", "year"))
 # Modelo de efectos fijos (within estimator)
 m_ef1 <- plm(prop ~ Corrupt, 
                    data = m_base, 
-                   model = "within")
+                   model = "within", effect = "twoways") # Estimación de modelo de EF y se especifica que se controle por ambas dimensiones, escuela y años.
 
 summary(m_ef1)
 ```
@@ -130,17 +212,15 @@ summary(m_ef1)
 d)  Una regresión simple de la variable depediente contra la independiente principal + controles + efectos fijos
 
 ```{r}
-# Corregir, hay multicolinealidad perfecta
 
-m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG, 
+m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN, 
                    data = m_base, 
-                   model = "within")
+                   model = "within", effect = "twoways")
 
 summary(m_ef2)
 ```
 
-Modelo extra con solo prop ~ Corrupt + grade
-
+Modelo extra con solo prop \~ Corrupt + grade
 
 ```{r}
 
@@ -152,17 +232,16 @@ m_extra <- plm(prop ~ Corrupt + GradoSecundaria,
 summary(m_extra)
 ```
 
-
 Tabla de resultados de las estimaciones de los puntos a, b, c, d.
 
 ```{r}
 
 library(stargazer)
 
-stargazer(lm1, lm2, m_ef1, m_extra,
+stargazer(lm1, lm2, m_ef1, m_ef2,
           type = "text",              # Cambiar a "html" o "latex" si quieres
           keep = "Corrupt",           # Solo muestra el coeficiente de interés
-          column.labels = c("(1)", "(2)", "(3)", "(4)"),
+          column.labels = c("MCO", "MCO con Controles", "E.F.", "E.F con Controles"),
           dep.var.labels = "Proporción",
           covariate.labels = "Corrupción",
           digits = 3,
