@@ -23,6 +23,11 @@ library(haven)
 library(plm)
 library(skimr)
 library(dplyr)
+```
+
+
+```{r}
+library(haven)
 library(ggplot2)
 
 # Carga de datos .dta
@@ -34,6 +39,9 @@ base <- read_dta(url_data)
 ### 0.1 Exploración de los datos
 
 ```{r}
+library(skimr)
+library(dplyr)
+
 # Estructura de datos y estadísticas
 str(base)
 skim(base)
@@ -198,6 +206,8 @@ summary(lm2)
 c)  Una regresión simple de la variable dependiente contra la independiente principal + efectos fijos
 
 ```{r}
+library(plm)
+
 # Matriz con efectos fijos 
 m_base <- pdata.frame(base, index = c("clavedelaescuela", "year"))
 
@@ -260,14 +270,18 @@ stargazer(lm1, lm2, m_ef1, m_ef2,
 Interpretar los resultados encontrados a partir de la primera regresión (estimación punto 2, inciso b)
 
 **¿Parece haber una relación entre la corrupción política y la trampa de los estudiantes?**
+El coeficiente estimado para la variable Corrupción política es positivo pero no resulta estadísticamente significativo. Esto indica que, una vez controladas las demás variables (características de la escuela, auditorías, contexto municipal, etc.), no se encuentra evidencia robusta de una asociación entre corrupción política y la proporción de estudiantes que hacen trampa. Aunque el coeficiente tiene signo positivo, su magnitud es muy pequeña (aprox. 0.00046), lo que sugiere que, aun de existir un efecto, este sería prácticamente irrelevante en términos sustantivos.
 
 ------------------------------------------------------------------------
 
 **¿Podemos interpretar esta relación como causal?**
+Este resultado no puede interpretarse como evidencia causal. El hecho de que la corrupción no sea significativa en esta especificación puede deberse a problemas de medición, variables omitidas o correlaciones no observadas que distorsionan la estimación. Incluso si hubiera significancia, la estimación seguiría siendo solo una correlación.
 
 ------------------------------------------------------------------------
 
 **¿Cuál sería el supuesto de identificación?**
+
+El supuesto de identificación es que el valor esperado de la trampa que habrían tenido los colegios con corrupción si no hubieran tenido corrupción es igual al valor esperado de la trampa observada en los colegios sin corrupción. En otras palabras, se asume que, en ausencia de corrupción, los colegios corruptos se comportarían igual que los no corruptos. Bajo ese supuesto, las diferencias observadas en trampa pueden atribuirse únicamente a la corrupción. Sin embargo, este supuesto es bastante fuerte: es probable que los colegios corruptos y no corruptos difieran en otras características (recursos, nivel socioeconómico, ubicación, etc.), y esas diferencias también afectan la trampa. Por eso la identificación causal es débil en este caso.
 
 ------------------------------------------------------------------------
 
