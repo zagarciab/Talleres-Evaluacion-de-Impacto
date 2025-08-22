@@ -214,6 +214,8 @@ m_ef1 <- plm(prop ~ Corrupt,
 summary(m_ef1)
 ```
 
+
+
 d)  Una regresión simple de la variable depediente contra la independiente principal + controles + efectos fijos
 
 ```{r}
@@ -225,14 +227,14 @@ m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + Already
 summary(m_ef2)
 ```
 
-Modelo extra con solo prop \~ Corrupt + grade
+
+Modelo extra sin PartidoDesf
 
 ```{r}
 
-# Modelo de efectos fijos extra con solo grado de control (within estimator)
-m_extra <- plm(prop ~ Corrupt + GradoSecundaria, 
+m_extra <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + AlreadyAudited + CorruptPast + HOMI_CAP_MUN, 
                    data = m_base, 
-                   model = "within")
+                   model = "within", effect = "twoways")
 
 summary(m_extra)
 ```
