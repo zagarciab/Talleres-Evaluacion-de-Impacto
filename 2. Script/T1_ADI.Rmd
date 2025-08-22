@@ -287,10 +287,12 @@ El supuesto de identificación es que el valor esperado de la trampa que habría
 
 ### 4. Mejor especificación
 
-A continuación, se elige la regresión (...) la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor ¿....? porque.....
+A continuación, se elige la regresión de Efectos Fijos con Controles (4) en la tabla resumen, la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor **¿....? porque.....**
 
 Adiconalmente, para dar respuesta a **¿Cuál es el supuesto de identificación para que esta especificación permita hacer interpretaciones causales?** es posible considerar que.....
 
 ### 5. Interpretación de coeficiente estimado
 
-Teniendo en cuenta la especificación anterior (punto 4) se interpreta que el coeficiente estimado es......
+Teniendo en cuenta la especificación anterior (punto 4) se interpreta que el coeficiente estimado para la variable **Corrupt1** en el modelo de efectos fijos con controles (Modelo 4) es de **0.0030483**. Este valor es estadísticamente significativo a un nivel de confianza del 5%, con un p-valor de 0.0496432.
+
+Esto significa que, manteniendo constantes los efectos fijos de la escuela y del año, y controlando por las demás variables, el hecho de que un municipio pase a ser considerado "corrupto" está asociado con un aumento promedio de **0.003 puntos porcentuales** en la proporción de estudiantes que hacen trampa. Este es un efecto positivo, lo que indica que la corrupción municipal se relaciona con un mayor comportamiento de trampa en las escuelas, pero la magnitud del efecto es muy pequeña en términos prácticos. La significancia estadística sugiere que esta relación no es producto del azar y que las variables de omitidas estaban ocultando esta relación en los modelos más simples.
