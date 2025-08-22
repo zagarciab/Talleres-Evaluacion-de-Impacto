@@ -263,11 +263,19 @@ stargazer(lm1, lm2, m_ef1, m_ef2,
 
 Interpretar los resultados encontrados a partir de la primera regresión (estimación punto 2, inciso b)
 
-**¿Parece haber una relación entre la corrupción política y la trampa de los estudiantes?** El coeficiente estimado para la variable Corrupción política es positivo pero no resulta estadísticamente significativo. Esto indica que, una vez controladas las demás variables (características de la escuela, auditorías, contexto municipal, etc.), no se encuentra evidencia robusta de una asociación entre corrupción política y la proporción de estudiantes que hacen trampa. Aunque el coeficiente tiene signo positivo, su magnitud es muy pequeña (aprox. 0.00046), lo que sugiere que, aun de existir un efecto, este sería prácticamente irrelevante en términos sustantivos.
+**¿Parece haber una relación entre la corrupción política y la trampa de los estudiantes?**
+
+El coeficiente estimado para la variable Corrupción política es positivo pero no resulta estadísticamente significativo. Esto indica que, una vez controladas las demás variables (características de la escuela, auditorías, contexto municipal, etc.), no se encuentra evidencia robusta de una asociación entre corrupción política y la proporción de estudiantes que hacen trampa. Aunque el coeficiente tiene signo positivo, su magnitud es muy pequeña (aprox. 0.00046), adicionalmente, su p-valor es de 0.737284, el cual es superior a los umbrales de significancia de 0.05. Lo anterior sugiere que, aun de existir un efecto, este sería prácticamente irrelevante en términos estadísticos y sustantivos debido a que contradice las expectativas de que una cultura de deshonestidad a nivel político se refleje como trampa de los estudiantes.
 
 ------------------------------------------------------------------------
 
-**¿Podemos interpretar esta relación como causal?** Este resultado no puede interpretarse como evidencia causal. El hecho de que la corrupción no sea significativa en esta especificación puede deberse a problemas de medición, variables omitidas o correlaciones no observadas que distorsionan la estimación. Incluso si hubiera significancia, la estimación seguiría siendo solo una correlación.
+**¿Podemos interpretar esta relación como causal?**
+
+Este resultado no puede interpretarse como evidencia causal. El hecho de que la corrupción no sea significativa en esta especificación puede deberse a problemas de medición, variables omitidas o correlaciones no observadas que distorsionan la estimación. Incluso si hubiera significancia, la estimación seguiría siendo solo una correlación.
+
+Lo anterior se basa al considerar principalmente el problema de variables omitidas, ya que para una relación causal, seria importante considerar variables constantes en el tiempo dentro de la escuela como objeto de estudio, tales como: cultura estudiantil y lineamientos de comportamiento establecidos por las escuelas, entre otros; asimismo, controlar por factores comunes en todas las escuelas que hacen parte del estudio.
+
+Adicionalmente, el modelo demuestra endogeneidad al materializarse la causalidad inversa debido a la variable Auditada1. Para este caso, el coeficiente de la variable es de 0.004618 y presenta significancia estadística, lo cual indica que las auditorías pueden ser enfocadas en instituciones con sospecha de trampa, y esa misma sospecha estar correlacionada con la trampa estudiantil.
 
 ------------------------------------------------------------------------
 
