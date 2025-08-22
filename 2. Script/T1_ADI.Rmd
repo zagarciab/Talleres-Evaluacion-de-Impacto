@@ -23,13 +23,11 @@ library(haven)
 library(plm)
 library(skimr)
 library(dplyr)
-```
-
-
-```{r}
 library(haven)
 library(ggplot2)
+```
 
+```{r}
 # Carga de datos .dta
 url_data <- "https://github.com/zagarciab/T1_ADI/raw/main/3.%20Data/corruption_SV.dta"
 
@@ -39,9 +37,6 @@ base <- read_dta(url_data)
 ### 0.1 Exploración de los datos
 
 ```{r}
-library(skimr)
-library(dplyr)
-
 # Estructura de datos y estadísticas
 str(base)
 skim(base)
@@ -139,10 +134,11 @@ base <- base %>%
 
 ## Convertir a factor variables categoricas
 var_factor <- c("clavedelaescuela", "turno", "GradoSecundaria", "year",
-                "clave_num", "Auditada", "AlredyAudited", "CorruptPast",
+                "clave_mun", "Auditada", "AlreadyAudited", "CorruptPast",
                 "Corrupt")
 
-base$GradoSecundaria <- as.factor(base$GradoSecundaria) 
+base <- base %>%
+  mutate(across(all_of(var_factor), as.factor))
 ```
 
 ### 1. Especificación de la regresión
@@ -206,8 +202,6 @@ summary(lm2)
 c)  Una regresión simple de la variable dependiente contra la independiente principal + efectos fijos
 
 ```{r}
-library(plm)
-
 # Matriz con efectos fijos 
 m_base <- pdata.frame(base, index = c("clavedelaescuela", "year"))
 
@@ -269,13 +263,11 @@ stargazer(lm1, lm2, m_ef1, m_ef2,
 
 Interpretar los resultados encontrados a partir de la primera regresión (estimación punto 2, inciso b)
 
-**¿Parece haber una relación entre la corrupción política y la trampa de los estudiantes?**
-El coeficiente estimado para la variable Corrupción política es positivo pero no resulta estadísticamente significativo. Esto indica que, una vez controladas las demás variables (características de la escuela, auditorías, contexto municipal, etc.), no se encuentra evidencia robusta de una asociación entre corrupción política y la proporción de estudiantes que hacen trampa. Aunque el coeficiente tiene signo positivo, su magnitud es muy pequeña (aprox. 0.00046), lo que sugiere que, aun de existir un efecto, este sería prácticamente irrelevante en términos sustantivos.
+**¿Parece haber una relación entre la corrupción política y la trampa de los estudiantes?** El coeficiente estimado para la variable Corrupción política es positivo pero no resulta estadísticamente significativo. Esto indica que, una vez controladas las demás variables (características de la escuela, auditorías, contexto municipal, etc.), no se encuentra evidencia robusta de una asociación entre corrupción política y la proporción de estudiantes que hacen trampa. Aunque el coeficiente tiene signo positivo, su magnitud es muy pequeña (aprox. 0.00046), lo que sugiere que, aun de existir un efecto, este sería prácticamente irrelevante en términos sustantivos.
 
 ------------------------------------------------------------------------
 
-**¿Podemos interpretar esta relación como causal?**
-Este resultado no puede interpretarse como evidencia causal. El hecho de que la corrupción no sea significativa en esta especificación puede deberse a problemas de medición, variables omitidas o correlaciones no observadas que distorsionan la estimación. Incluso si hubiera significancia, la estimación seguiría siendo solo una correlación.
+**¿Podemos interpretar esta relación como causal?** Este resultado no puede interpretarse como evidencia causal. El hecho de que la corrupción no sea significativa en esta especificación puede deberse a problemas de medición, variables omitidas o correlaciones no observadas que distorsionan la estimación. Incluso si hubiera significancia, la estimación seguiría siendo solo una correlación.
 
 ------------------------------------------------------------------------
 
