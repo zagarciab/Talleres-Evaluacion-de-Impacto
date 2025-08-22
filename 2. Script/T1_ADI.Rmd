@@ -27,6 +27,8 @@ library(haven)
 library(ggplot2)
 ```
 
+
+
 ```{r}
 # Carga de datos .dta
 url_data <- "https://github.com/zagarciab/T1_ADI/raw/main/3.%20Data/corruption_SV.dta"
