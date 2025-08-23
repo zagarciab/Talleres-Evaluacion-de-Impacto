@@ -290,9 +290,11 @@ El supuesto de identificación es que el valor esperado de la trampa que habría
 
 ### 4. Mejor especificación
 
-A continuación, se elige la regresión de Efectos Fijos con Controles (4) en la tabla resumen, la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor **¿....? porque.....**
+A continuación, se elige la regresión de Efectos Fijos con Controles (4) en la tabla resumen, la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor al combinar ambos (controles + efectos fijos), se reduce la endogeneidad por variables omitidas, y se aproxima mejor a una interpretación causal. Incluye controles observables, lo que reduce el riesgo de omitir factores que puedan estar correlacionados con corrupción y con el desempeño de los estudiantes. Además, incorpora efectos fijos de municipio y de año, lo que permite controlar por factores no observados que son constantes en el tiempo y por choques comunes a todos en un año.
 
-Adiconalmente, para dar respuesta a **¿Cuál es el supuesto de identificación para que esta especificación permita hacer interpretaciones causales?** es posible considerar que.....
+Adiconalmente, para dar respuesta al supuesto de identificación para que esta especificación permita hacer interpretaciones causales es posible considerar que el supuesto de identificación es que, dados los controles y los efectos fijos, la corrupción es independiente del error; es decir, los colegios expuestos a corrupción sirven como buen contrafactual de sí mismos en ausencia de corrupción. En términos de resultados potenciales: el valor esperado del resultado potencial de trampa en un colegio si no hubiera corrupción es igual al valor esperado del resultado observado en colegios sin corrupción, condicional a los controles y efectos fijos.
+
+El supuesto de identificación es: E[Yi(0)|Di=1,X,FE] = E[Yi(0)|Di=0,X,FE]
 
 ### 5. Interpretación de coeficiente estimado
 
