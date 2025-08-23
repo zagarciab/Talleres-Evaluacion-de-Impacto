@@ -2,7 +2,10 @@
 title: "Taller 1 - Regresión e Interpretación Causal"
 author: "Nicolas Jacome Velasco, Zaira Alejandra Garcia Bernal"
 date: "2025-08-16"
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
+    extra_dependencies: ["adjustbox"]
 ---
 
 # Evaluación de Impacto
@@ -12,12 +15,13 @@ output: pdf_document
 ### 0. Carga de datos y paquetes
 
 ```{r}
-# Liberias y paquetes
-install.packages("haven") # Archivos .dta
-install.packages("plm")
-install.packages("skimr")
-install.packages("dplyr")
-install.packages("ggplot2")
+# Instalar 
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+
+# Cargar los paquetes necesarios
+pacman::p_load(haven, plm, skimr, dplyr, ggplot2)
 
 library(haven)
 library(plm)
@@ -26,7 +30,6 @@ library(dplyr)
 library(haven)
 library(ggplot2)
 ```
-
 
 ```{r}
 # Carga de datos .dta
@@ -51,15 +54,15 @@ ggplot(base, aes(prop)) +
   geom_vline(xintercept = mean(base$prop, na.rm = TRUE), linetype = "dashed", color = "blue") + 
   ggtitle("GRÁFICA 1 - Histograma de Prop ") +
   theme_bw() +
-  theme(plot.title = element_text(size = 18))
+  theme(plot.title = element_text(size = 10))
 
 ggplot(base, aes(unauthorized)) +
   geom_histogram(color = "#000000", fill = "#0099F8") +
   geom_vline(xintercept = median(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "red") +
   geom_vline(xintercept = mean(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "blue") + 
-  ggtitle("GRÁFICA 1 - Histograma de unauthorized ") +
+  ggtitle("GRÁFICA 2 - Histograma de unauthorized ") +
   theme_bw() +
-  theme(plot.title = element_text(size = 18))
+  theme(plot.title = element_text(size = 10))
 
 ## Imputación de missing values con la mediana para Prop
 base <- base  %>%
@@ -162,7 +165,7 @@ Variables de control:
 
 -   $X_{smgt}Γ$ corresponde a un vector de controles y sus coeficientes correspondientes. Este vector contiene:
 
-    -   $grade_{gt}$ es el grado (nota) de los estudiantes, a nivel grado *(grado)* y año *(t)*. **\# corregir**
+    -   $Grado_{gt}$ es el grado de los estudiantes, a nivel grado *(grado)* y año *(t)*.
 
     -   $PartidoDesf_{mt}$ es el partido político activo, a nivel municipio *(m)* y año *(t)*.
 
@@ -170,7 +173,7 @@ Variables de control:
 
     -   $CorruptPast_{mt}$ es binaria que toma uno para corrupción en el pasado, a nivel municipio *(m)* y año *(t)*.
 
-    -   $HOMI _ CAP _ MUN_{mt}$ son homicidios per cápita, a nivel municipio *(m)* y año *(t)*.
+    -   $HOMICAPMUN_{mt}$ son homicidios per cápita, a nivel municipio *(m)* y año *(t)*.
 
 Donde, los efectos fijos son:
 
@@ -190,6 +193,7 @@ a)  Una regresión simple de la variable dependiente contra la independiente pri
 ```{r}
 lm1<- lm (prop ~ Corrupt, base)
 summary(lm1)
+stargazer(lm1)
 ```
 
 b)  Una regresión simple de la variable dependiente contra la independiente principal + controles
@@ -198,6 +202,7 @@ b)  Una regresión simple de la variable dependiente contra la independiente pri
 # Regresión por MCO con controles
 lm2 <- lm (prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + AlreadyAudited + CorruptPast + HOMI_CAP_MUN + total + MismoPartidoG , base)
 summary(lm2)
+stargazer(lm2)
 ```
 
 c)  Una regresión simple de la variable dependiente contra la independiente principal + efectos fijos
@@ -212,9 +217,8 @@ m_ef1 <- plm(prop ~ Corrupt,
                    model = "within", effect = "twoways") # Estimación de modelo de EF y se especifica que se controle por ambas dimensiones, escuela y años.
 
 summary(m_ef1)
+stargazer(m_ef1)
 ```
-
-
 
 d)  Una regresión simple de la variable depediente contra la independiente principal + controles + efectos fijos
 
@@ -225,18 +229,7 @@ m_ef2 <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + PartidoDesf + Already
                    model = "within", effect = "twoways")
 
 summary(m_ef2)
-```
-
-
-Modelo extra sin PartidoDesf
-
-```{r}
-
-m_extra <- plm(prop ~ Corrupt + Auditada + GradoSecundaria + AlreadyAudited + CorruptPast + HOMI_CAP_MUN, 
-                   data = m_base, 
-                   model = "within", effect = "twoways")
-
-summary(m_extra)
+stargazer(m_ef2)
 ```
 
 Tabla de resultados de las estimaciones de los puntos a, b, c, d.
@@ -246,7 +239,7 @@ Tabla de resultados de las estimaciones de los puntos a, b, c, d.
 library(stargazer)
 
 stargazer(lm1, lm2, m_ef1, m_ef2,
-          type = "text",              # Cambiar a "html" o "latex" si quieres
+          type = "latex",              # Cambiar a "html" o "latex" si quieres
           keep = "Corrupt",           # Solo muestra el coeficiente de interés
           column.labels = c("MCO", "MCO con Controles", "E.F.", "E.F con Controles"),
           dep.var.labels = "Proporción",
@@ -276,7 +269,7 @@ El coeficiente estimado para la variable Corrupción política es positivo pero 
 
 Este resultado no puede interpretarse como evidencia causal. El hecho de que la corrupción no sea significativa en esta especificación puede deberse a problemas de medición, variables omitidas o correlaciones no observadas que distorsionan la estimación. Incluso si hubiera significancia, la estimación seguiría siendo solo una correlación.
 
-Lo anterior se basa al considerar principalmente el problema de variables omitidas, ya que para una relación causal, seria importante considerar variables constantes en el tiempo dentro de la escuela como objeto de estudio, tales como: cultura estudiantil y lineamientos de comportamiento establecidos por las escuelas, entre otros; asimismo, controlar por factores comunes en todas las escuelas que hacen parte del estudio.
+Lo anterior, se basa al considerar principalmente el problema de variables omitidas, ya que para una relación causal, seria importante considerar variables constantes en el tiempo dentro de la escuela como objeto de estudio, tales como: cultura estudiantil y lineamientos de comportamiento establecidos por las escuelas, entre otros; asimismo, controlar por factores comunes en todas las escuelas que hacen parte del estudio.
 
 Adicionalmente, el modelo demuestra endogeneidad al materializarse la causalidad inversa debido a la variable Auditada1. Para este caso, el coeficiente de la variable es de 0.004618 y presenta significancia estadística, lo cual indica que las auditorías pueden ser enfocadas en instituciones con sospecha de trampa, y esa misma sospecha estar correlacionada con la trampa estudiantil.
 
@@ -284,17 +277,17 @@ Adicionalmente, el modelo demuestra endogeneidad al materializarse la causalidad
 
 **¿Cuál sería el supuesto de identificación?**
 
-El supuesto de identificación es que el valor esperado de la trampa que habrían tenido los colegios con corrupción si no hubieran tenido corrupción es igual al valor esperado de la trampa observada en los colegios sin corrupción. En otras palabras, se asume que, en ausencia de corrupción, los colegios corruptos se comportarían igual que los no corruptos. Bajo ese supuesto, las diferencias observadas en trampa pueden atribuirse únicamente a la corrupción. Sin embargo, este supuesto es bastante fuerte: es probable que los colegios corruptos y no corruptos difieran en otras características (recursos, nivel socioeconómico, ubicación, etc.), y esas diferencias también afectan la trampa. Por eso la identificación causal es débil en este caso.
+El supuesto de identificación es que el valor esperado de la trampa que habrían tenido los colegios con corrupción si no hubieran tenido corrupción es igual al valor esperado de la trampa observada en los colegios sin corrupción. En otras palabras, se asume que, en ausencia de corrupción, los colegios corruptos se comportarían igual que los no corruptos. Bajo ese supuesto, las diferencias observadas en trampa pueden atribuirse únicamente a la corrupción. Sin embargo, el siguiente supuesto es bastante fuerte: es probable que los colegios corruptos y no corruptos difieran en otras características (recursos, nivel socioeconómico, ubicación, etc.), y esas diferencias también afectan la trampa. Por eso la identificación causal es débil en este caso.
 
 ------------------------------------------------------------------------
 
 ### 4. Mejor especificación
 
-A continuación, se elige la regresión de Efectos Fijos con Controles (4) en la tabla resumen, la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor Esta especificación combina controles y efectos fijos, lo que ayuda a mitigar la endogeneidad. Incluye controles observables, lo que reduce el riesgo de omitir factores que puedan estar correlacionados con corrupción y con el desempeño de los estudiantes. Además, incorpora efectos fijos de municipio y de año, lo que permite controlar por factores no observados que son constantes en el tiempo y por choques comunes a todos en un año. De esta manera, se reduce el sesgo por variables omitidas y se aproxima mejor a una interpretación causal
+A continuación, se elige la regresión de Efectos Fijos con Controles (4) en la tabla resumen, la cual parece ser la más adecuada para aproximarse a la respuesta de la pregunta de investigación del autor. Esta especificación combina controles y efectos fijos, lo que ayuda a mitigar la endogeneidad. Incluye controles observables, lo que reduce el riesgo de omitir factores que puedan estar correlacionados con corrupción y con el desempeño de los estudiantes. Además, incorpora efectos fijos de municipio y de año, lo que permite controlar por factores no observados que son constantes en el tiempo y por choques comunes a todos en un año. De esta manera, se reduce el sesgo por variables omitidas y se aproxima mejor a una interpretación causal.
 
-Adiconalmente, para dar respuesta al supuesto de identificación para que esta especificación permita hacer interpretaciones causales es posible considerar que el supuesto de identificación es que, dados los controles y los efectos fijos, la corrupción es independiente del error; es decir, los colegios expuestos a corrupción sirven como buen contrafactual de sí mismos en ausencia de corrupción. En términos de resultados potenciales: el valor esperado del resultado potencial de trampa en un colegio si no hubiera corrupción es igual al valor esperado del resultado observado en colegios sin corrupción, condicional a los controles y efectos fijos.
+Adiconalmente, para dar respuesta al supuesto de identificación para que esta especificación permita hacer interpretaciones causales es posible considerar que el supuesto de identificación es que, dados los controles y los efectos fijos, la corrupción es independiente del error; es decir, los colegios expuestos a corrupción sirven como buen contrafactual de sí mismos en ausencia de corrupción. En términos de resultados potenciales: el valor esperado del resultado potencial de trampa en un colegio si no hubiera corrupción es igual al valor esperado del resultado observado en colegios sin corrupción, condicionado a los controles y efectos fijos.
 
-El supuesto de identificación es: E[Yi(0)|Di=1,X,FE] = E[Yi(0)|Di=0,X,FE]
+El supuesto de identificación es: $E[Yi(0)|Di=1,X,FE] = E[Yi(0)|Di=0,X,FE]$
 
 ### 5. Interpretación de coeficiente estimado
 
