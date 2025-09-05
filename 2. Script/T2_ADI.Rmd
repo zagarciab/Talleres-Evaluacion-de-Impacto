@@ -33,7 +33,7 @@ library(ggplot2)
 
 ```{r}
 # Carga de datos .dta
-url_data <- "https://github.com/zagarciab/T1_ADI/raw/main/3.%20Data/corruption_SV.dta"
+url_data <- "https://github.com/zagarciab/Talleres-Evaluacion-de-Impacto/raw/main/3.%20Data/oil_windfall_sin10perc.dta"
 
 base <- read_dta(url_data)
 ```
@@ -43,98 +43,8 @@ base <- read_dta(url_data)
 ```{r}
 # Estructura de datos y estadísticas
 str(base)
-skim(base)
+skim(base) # sin missing values
 
-# Imputación de missing values
-
-## Histogramas
-ggplot(base, aes(prop)) +
-  geom_histogram(color = "#000000", fill = "#0099F8") +
-  geom_vline(xintercept = median(base$prop, na.rm = TRUE), linetype = "dashed", color = "red") +
-  geom_vline(xintercept = mean(base$prop, na.rm = TRUE), linetype = "dashed", color = "blue") + 
-  ggtitle("GRÁFICA 1 - Histograma de Prop ") +
-  theme_bw() +
-  theme(plot.title = element_text(size = 10))
-
-ggplot(base, aes(unauthorized)) +
-  geom_histogram(color = "#000000", fill = "#0099F8") +
-  geom_vline(xintercept = median(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "red") +
-  geom_vline(xintercept = mean(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "blue") + 
-  ggtitle("GRÁFICA 2 - Histograma de unauthorized ") +
-  theme_bw() +
-  theme(plot.title = element_text(size = 10))
-
-## Imputación de missing values con la mediana para Prop
-base <- base  %>%
-  mutate(prop = ifelse(is.na(prop) == TRUE, 
-                       median(base$prop, na.rm = TRUE) , prop),
-         unauthorized = ifelse(is.na(unauthorized) == TRUE, 
-                       median(base$unauthorized, na.rm = TRUE), 
-                       unauthorized))
-
-## Imputación variables dicotómica con moda 
-moda_auditada <- base %>% 
-  filter(!is.na(Auditada)) %>% 
-  count(Auditada) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(Auditada)
-
-moda_AlreadyAudited <- base %>% 
-  filter(!is.na(AlreadyAudited)) %>% 
-  count(AlreadyAudited) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(AlreadyAudited)
-
-moda_CorruptPast <- base %>% 
-  filter(!is.na(CorruptPast)) %>% 
-  count(CorruptPast) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(CorruptPast)
-
-moda_Corrupt <- base %>% 
-  filter(!is.na(Corrupt)) %>% 
-  count(Corrupt) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(Corrupt)
-
-moda_HOMI <- base %>% 
-  filter(!is.na(HOMI_CAP_MUN)) %>% 
-  count(HOMI_CAP_MUN) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(HOMI_CAP_MUN)
-
-moda_grado <- base %>% 
-  filter(!is.na(GradoSecundaria)) %>% 
-  count(GradoSecundaria) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(GradoSecundaria)
-
-moda_grado <- base %>% 
-  filter(!is.na(GradoSecundaria)) %>% 
-  count(GradoSecundaria) %>% 
-  arrange(desc(n)) %>% 
-  slice(1) %>% 
-  pull(GradoSecundaria)
-
-base <- base %>%
-  mutate(Auditada = ifelse(is.na(Auditada) == TRUE, 
-                           moda_auditada, Auditada),
-         AlreadyAudited = ifelse(is.na(AlreadyAudited) == TRUE,
-                                 moda_AlreadyAudited, AlreadyAudited),
-         CorruptPast = ifelse(is.na(CorruptPast) == TRUE, 
-                              moda_CorruptPast, CorruptPast),
-         Corrupt = ifelse(is.na(Corrupt) == TRUE, 
-                          moda_Corrupt, Corrupt),
-         HOMI_CAP_MUN = ifelse(is.na(HOMI_CAP_MUN)  == TRUE, 
-                               moda_HOMI, HOMI_CAP_MUN),
-         GradoSecundaria = ifelse(is.na(GradoSecundaria)  == TRUE, 
-                               moda_grado, GradoSecundaria))
 
 ## Convertir a factor variables categoricas
 var_factor <- c("clavedelaescuela", "turno", "GradoSecundaria", "year",
