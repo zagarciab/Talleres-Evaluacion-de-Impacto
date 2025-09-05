@@ -1,0 +1,244 @@
+---
+title: "Taller 1 - Regresión e Interpretación Causal"
+author: "Nicolas Jacome Velasco, Zaira Alejandra Garcia Bernal"
+date: "2025-08-16"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    extra_dependencies: ["adjustbox"]
+---
+
+# Evaluación de Impacto
+
+## Taller 1: Variables Instrumentales
+
+### 0. Carga de datos y paquetes
+
+```{r}
+# Instalar 
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+
+# Cargar los paquetes necesarios
+pacman::p_load(haven, plm, skimr, dplyr, ggplot2)
+
+library(haven)
+library(plm)
+library(skimr)
+library(dplyr)
+library(haven)
+library(ggplot2)
+```
+
+```{r}
+# Carga de datos .dta
+url_data <- "https://github.com/zagarciab/T1_ADI/raw/main/3.%20Data/corruption_SV.dta"
+
+base <- read_dta(url_data)
+```
+
+### 0.1 Exploración de los datos
+
+```{r}
+# Estructura de datos y estadísticas
+str(base)
+skim(base)
+
+# Imputación de missing values
+
+## Histogramas
+ggplot(base, aes(prop)) +
+  geom_histogram(color = "#000000", fill = "#0099F8") +
+  geom_vline(xintercept = median(base$prop, na.rm = TRUE), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = mean(base$prop, na.rm = TRUE), linetype = "dashed", color = "blue") + 
+  ggtitle("GRÁFICA 1 - Histograma de Prop ") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 10))
+
+ggplot(base, aes(unauthorized)) +
+  geom_histogram(color = "#000000", fill = "#0099F8") +
+  geom_vline(xintercept = median(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = mean(base$unauthorized, na.rm = TRUE), linetype = "dashed", color = "blue") + 
+  ggtitle("GRÁFICA 2 - Histograma de unauthorized ") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 10))
+
+## Imputación de missing values con la mediana para Prop
+base <- base  %>%
+  mutate(prop = ifelse(is.na(prop) == TRUE, 
+                       median(base$prop, na.rm = TRUE) , prop),
+         unauthorized = ifelse(is.na(unauthorized) == TRUE, 
+                       median(base$unauthorized, na.rm = TRUE), 
+                       unauthorized))
+
+## Imputación variables dicotómica con moda 
+moda_auditada <- base %>% 
+  filter(!is.na(Auditada)) %>% 
+  count(Auditada) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(Auditada)
+
+moda_AlreadyAudited <- base %>% 
+  filter(!is.na(AlreadyAudited)) %>% 
+  count(AlreadyAudited) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(AlreadyAudited)
+
+moda_CorruptPast <- base %>% 
+  filter(!is.na(CorruptPast)) %>% 
+  count(CorruptPast) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(CorruptPast)
+
+moda_Corrupt <- base %>% 
+  filter(!is.na(Corrupt)) %>% 
+  count(Corrupt) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(Corrupt)
+
+moda_HOMI <- base %>% 
+  filter(!is.na(HOMI_CAP_MUN)) %>% 
+  count(HOMI_CAP_MUN) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(HOMI_CAP_MUN)
+
+moda_grado <- base %>% 
+  filter(!is.na(GradoSecundaria)) %>% 
+  count(GradoSecundaria) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(GradoSecundaria)
+
+moda_grado <- base %>% 
+  filter(!is.na(GradoSecundaria)) %>% 
+  count(GradoSecundaria) %>% 
+  arrange(desc(n)) %>% 
+  slice(1) %>% 
+  pull(GradoSecundaria)
+
+base <- base %>%
+  mutate(Auditada = ifelse(is.na(Auditada) == TRUE, 
+                           moda_auditada, Auditada),
+         AlreadyAudited = ifelse(is.na(AlreadyAudited) == TRUE,
+                                 moda_AlreadyAudited, AlreadyAudited),
+         CorruptPast = ifelse(is.na(CorruptPast) == TRUE, 
+                              moda_CorruptPast, CorruptPast),
+         Corrupt = ifelse(is.na(Corrupt) == TRUE, 
+                          moda_Corrupt, Corrupt),
+         HOMI_CAP_MUN = ifelse(is.na(HOMI_CAP_MUN)  == TRUE, 
+                               moda_HOMI, HOMI_CAP_MUN),
+         GradoSecundaria = ifelse(is.na(GradoSecundaria)  == TRUE, 
+                               moda_grado, GradoSecundaria))
+
+## Convertir a factor variables categoricas
+var_factor <- c("clavedelaescuela", "turno", "GradoSecundaria", "year",
+                "clave_mun", "Auditada", "AlreadyAudited", "CorruptPast",
+                "Corrupt")
+
+base <- base %>%
+  mutate(across(all_of(var_factor), as.factor))
+```
+
+### 1. Especificación de la regresión
+
+Escriban la especificación principal de los autores (en niveles) y describan cada una de sus variables explicativas. :
+
+$$Outcome_{m}=β_0+β_1 OilRev_{m}+X_{m}Γ+λ_s+ ε_{is}$$ Donde la variable dependiente:
+
+-   $Outcome_{m}$ gasto per cápita en 2000 por rubro (Educación y Cultura; Salud y Saneamiento; Transporte; Transferencias sociales).
+
+Donde los parámetros y variables de interés son:
+
+-   $OilRev_{m}$ ingresos públicos per cápita provenientes del petróleo (regalías/participaciones) del municipio m.
+
+-   $β_1$ son los parámetros de interés que responden a la pregunda de investigación. Efecto causal de interés (cambio en gasto por 1 BRL pc adicional de ingresos petroleros).
+
+Variables de control:
+
+-   $X_{smgt}Γ$ corresponde a un vector de controles y sus coeficientes correspondientes. Este vector contiene:
+
+    -   $Grado_{gt}$ es el grado de los estudiantes, a nivel grado *(grado)* y año *(t)*.
+
+
+
+Donde, los efectos fijos son:
+
+-   $λ_s$ corresponde a efectos fijos a nivel de colegio *s*. Controla por todas las características no observadas que son constantes en el tiempo dentro de cada colegio *(clavedelaescuela)*
+
+Términos adicionales:
+
+-   $β_0$ es la constante del modelo.
+-   $ε_{is}$ corresponde al término del error que captura todas las variables no observadas que afectan a la proporción de estudiantes que hacen trampa.
+
+### 2. Intuición de variables instrumentales (VI)
+
+¿Cuál es la intuición detrás de implementar Variables Instrumentales
+(VI) en vez de Mínimos Cuadrados Ordinarios (MCO)? En este escenario: Mencione al menos un sesgo del cual podríamos estar preocupados si interpretamos los efectos por MCO de manera causal. ¿Cuáles son los supuestos necesarios para que VI nos permita recuperar el efecto causal de interés? ¿Son creíbles los supuestos? Argumenten
+
+```{r}
+lm1<- lm (prop ~ Corrupt, base)
+summary(lm1)
+stargazer(lm1)
+```
+
+### 3. Presentación de resultados primera etapa
+
+En una tabla, presenten los resultados de estimar la primera etapa de la metodología de Variables Instrumentales.¿Es el instrumento relevante y fuerte? Contesten esta pregunta usando los dos criterios recomendados en la clase magistral
+
+```{r}
+library(stargazer)
+
+stargazer(lm1, lm2, m_ef1, m_ef2,
+          type = "latex",              # Cambiar a "html" o "latex" si quieres
+          keep = "Corrupt",           # Solo muestra el coeficiente de interés
+          column.labels = c("MCO", "MCO con Controles", "E.F.", "E.F con Controles"),
+          dep.var.labels = "Proporción",
+          covariate.labels = "Corrupción",
+          digits = 3,
+          no.space = TRUE,
+          title = "Resultados de las regresiones",
+          add.lines = list(
+            c("Controles", "No", "Sí", "No", "Sí"),
+            c("Efectos fijos", "No", "No", "Sí", "Sí")
+          ),
+          notes = "Errores estándar entre paréntesis. Solo se reporta el coeficiente de 'Corrupt'.")
+```
+
+### 4. Presentación de resultados por VI
+
+En una tabla, presenten e interpreten los resultados de estimar por VI el efecto de (mayores) ingresos públicos (producto del petróleo) sobre el gasto público reportado en el año 2000 en Educación y Cultura, Salud y Sanitización, Transporte y Transferencias Sociales.
+
+```{r}
+library(stargazer)
+
+stargazer(lm1, lm2, m_ef1, m_ef2,
+          type = "latex",              # Cambiar a "html" o "latex" si quieres
+          keep = "Corrupt",           # Solo muestra el coeficiente de interés
+          column.labels = c("MCO", "MCO con Controles", "E.F.", "E.F con Controles"),
+          dep.var.labels = "Proporción",
+          covariate.labels = "Corrupción",
+          digits = 3,
+          no.space = TRUE,
+          title = "Resultados de las regresiones",
+          add.lines = list(
+            c("Controles", "No", "Sí", "No", "Sí"),
+            c("Efectos fijos", "No", "No", "Sí", "Sí")
+          ),
+          notes = "Errores estándar entre paréntesis. Solo se reporta el coeficiente de 'Corrupt'.")
+```
+
+### 5. Presentación de resultados por VI
+
+En una tabla, presenten e interpreten los resultados de estimar por VI
+el efecto de (mayores) ingresos públicos (producto del petróleo) sobre las variables efectivas de bienestar. En particular, sobre proporción de personas que no viven en favelas en 2000 y  el número
+de salones por millón de habitantes en el 2005. ¿Qué indican sus resultados? ¿Mayores ingresos públicos resultan en niveles del bienestar medido a través de estas variables?. En texto describa los resultados para la primera variable
+
+```{r}
+
+```
