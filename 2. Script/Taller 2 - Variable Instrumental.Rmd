@@ -1,0 +1,257 @@
+---
+title: "Taller 2 - Variable Instrumental"
+author: "Nicolas Jacome Velasco, Zaira Alejandra Garcia Bernal"
+output: html_document
+date: "2025-09-02"
+---
+
+```{r}
+library(haven)
+library(dplyr)
+
+url_data <- "https://github.com/zagarciab/Talleres-Evaluacion-de-Impacto/raw/main/3.%20Data/oil_windfall_sin10perc.dta"
+
+data <- read_dta(url_data)
+
+head(data)
+```
+
+```{r}
+colSums(is.na(data))
+
+na_summary <- data.frame(
+  Variable = names(data),
+  NAs = colSums(is.na(data)),
+  Perc_NA = colSums(is.na(data)) / nrow(data) * 100
+)
+print(na_summary)
+
+## Imputación de missing values con la mediana para Prop
+base_im <- data  %>%
+  mutate(clroomsMunicipal_pop2005 = ifelse(is.na(clroomsMunicipal_pop2005) == TRUE, 
+                       median(data$clroomsMunicipal_pop2005, na.rm = TRUE) , clroomsMunicipal_pop2005),
+         pmun_exp_funct_educ_cult2000c = ifelse(is.na(pmun_exp_funct_educ_cult2000c) == TRUE, 
+                       median(data$pmun_exp_funct_educ_cult2000c, na.rm = TRUE), 
+                       pmun_exp_funct_educ_cult2000c), 
+         pmun_exp_funct_health_sanit2000c = ifelse(is.na(pmun_exp_funct_health_sanit2000c) == TRUE, 
+                       median(data$pmun_exp_funct_health_sanit2000c, na.rm = TRUE), 
+                       pmun_exp_funct_health_sanit2000c), 
+         pmun_exp_funct_hous_urban2000c = ifelse(is.na(pmun_exp_funct_hous_urban2000c) == TRUE, 
+                       median(data$pmun_exp_funct_hous_urban2000c, na.rm = TRUE), 
+                       pmun_exp_funct_hous_urban2000c), 
+         pmun_exp_funct_transport2000c = ifelse(is.na(pmun_exp_funct_transport2000c) == TRUE, 
+                       median(data$pmun_exp_funct_transport2000c, na.rm = TRUE), 
+                       pmun_exp_funct_transport2000c), 
+         pmun_exp_funct_welf2000c = ifelse(is.na(pmun_exp_funct_welf2000c) == TRUE, 
+                       median(data$pmun_exp_funct_welf2000c, na.rm = TRUE), 
+                       pmun_exp_funct_welf2000c),
+         p_hhld_abovestrandard_ppl_2000 = ifelse(is.na(p_hhld_abovestrandard_ppl_2000) == TRUE, 
+                       median(data$p_hhld_abovestrandard_ppl_2000, na.rm = TRUE), 
+                       p_hhld_abovestrandard_ppl_2000),
+         mun_budget_revenue2000_pred_c = ifelse(is.na(mun_budget_revenue2000_pred_c) == TRUE, 
+                       median(data$mun_budget_revenue2000_pred_c, na.rm = TRUE), 
+                       mun_budget_revenue2000_pred_c))
+
+
+
+```
+
+**1. Escriban la especificación principal de los autores (en niveles) y describan cada una de sus variables explicativas.**
+
+Especificación principal del articulo:
+
+Wm = δ1 + θ1Rm + Xm′ρ1 + um
+
+Wm: variable dependiente → outcomes de bienestar a nivel municipal (ingreso de los hogares, pobreza, gasto en educación/salud, provisión de bienes públicos, etc.).
+
+Rm: variable explicativa principal → ingresos fiscales municipales (particularmente las transferencias por petróleo, los oil windfalls).
+
+Xm: vector de controles geográficos:
+
+-   latitud, longitud,
+-   dummy si el municipio es costero,
+-   dummy si es capital estatal,
+-   distancia a la capital del estado y a la capital federal,
+-   efectos fijos de estado.
+
+um: término de error.
+
+δ1: constante.
+
+θ1: parámetro de interés → mide el efecto de un real adicional de ingresos fiscales (derivados de petróleo) sobre el bienestar.
+
+**2. ¿Cuál es la intuición detrás de implementar Variables Instrumentales (VI) en vez de Mínimos Cuadrados Ordinarios (MCO)? En este escenario: Mencione al menos un sesgo del cual podríamos estar preocupados si interpretamos los efectos por MCO de manera causal. ¿Cuáles son los supuestos necesarios para que VI nos permita recuperar el efecto causal de interés? ¿Son creíbles los supuestos? Argumenten.**
+
+La intuición detrás de usar VI parte de algunos problemas que puede presentar el MCO, dos de esos son el sesgo de variable omitida y la correlación inversa. En este caso el sesgo de variable omitida se ve si se usa Rm (ingresos fiscales) directamente para explicar Wm (bienestar) puede haber elementos observables o no observables que estamos dejando por fuera que afectan tanto a la variable de interes como a la variable dependiente. Algo como la fortaleza de instituciones locales, corrupción, historia politica son algunos ejemplos que afectan a ambos. Por otro lado, la correlación inversa tambien podría darse ya que puede ser que el nivel de municipalidad prediga que dicha municipalidad reciba más transferencias fiscales. Usar un instrumento externo "limpia" estas dificultades.
+
+Los supuestos necesarios para que la VI permita recuperar el efecto causal son tres:
+
+(1) Relevancia: El instrumento debe estar fuertemente relacionado con la variable de interes. En este caso municipalidades con mayor offshore reciben mayores regalías.
+
+(2) Exclusión: El instrumento solo debe afectar a Y a través de X. En este caso, la cantidad de barriles de petroleo producidos no es algo que afecte si hay menor pobreza, o mejor infraestructura, etc, en general no afecta directamente el bienestar de la municipalidad.
+
+(3) Independencia: El instrumento no debe estar relacionado con el error Um, o los factores no observados porque generaria una especie de sesgo de variable omitida desde el instrumento.
+
+Los supuestos son creíbles en este caso del articulo. Para relevancia, como se dijo anteriormente la cantidad producida de petroleo por offshore genera automaticamente un crecimiento en regalías fiscales y por consiguiente ingresos en una municipalidad. Además, la exclusión también es creíble ya que el instrumento de cantidad de producción offshore no es algo que influya directamente en el bienestar de las municipalidades, genera un efecto a traves de aumentar los ingresos para dar un bienestar. Por ultimo, la independencia es creíble porque el yacimiento offshore no depende de las caracteristicas del municipio sino que son asignadas de forma aleatoria según el articulo.
+
+**3. En una tabla, presenten los resultados de estimar la primera etapa de la metodología de Variables Instrumentales. ¿Es el instrumento relevante y fuerte? Contesten esta pregunta usando los dos criterios recomendados en la clase magistral.**
+
+```{r}
+library(AER)
+
+Y <- "welfare_2000_c"                     
+X   <- "mun_budget_revenue2000_pred_c"
+Z_instr   <- "oilandgasvalue2000_cap"
+
+controls <- c("coastal","onshore","latitude1998","longitude1998",
+              "dist_federal_capital1998","dist_state_capital1998",
+              "state_capital","factor(sigla)")
+
+# Restrinjo la base a municipios costeros y solo offshore
+base_sub <- subset(base_im, coastal == 1 & onshore == 0)
+
+iv_formula <- as.formula(
+  paste(Y, "~", paste(c(X, controls), collapse=" + "),
+        "|", Z_instr, " + ", paste(controls, collapse=" + "))
+)
+
+ivm <- ivreg(iv_formula, data = base_sub)
+summary(ivm, diagnostics = TRUE)   
+
+```
+
+```{r}
+library(sandwich)
+library(lmtest)
+library(car)
+library(stargazer)
+
+form_fs <- as.formula(
+  paste(X, "~", Z_instr, " + ", paste(controls, collapse = " + "))
+)
+#primera etapa
+fs <- lm(form_fs, data = base_sub)
+
+#Limpiar niveles vacíos tras el filtro coastal==1 & onshore==0
+base_sub <- droplevels(base_sub)
+
+# Errores estándar robustos (HC1)
+vcov_fs_rob <- vcovHC(fs, type = "HC1")
+robust_se   <- sqrt(diag(vcov_fs_rob))
+
+# Fuerza del instrumento 
+ct    <- coeftest(fs, vcov. = vcov_fs_rob)
+t_Z   <- as.numeric(ct[Z_instr, "t value"])
+F_stat <- t_Z^2
+p_F    <- pf(F_stat, df1 = 1, df2 = df.residual(fs), lower.tail = FALSE)
+
+# R^2
+r_R <- resid(lm(as.formula(paste(X, "~", paste(controls, collapse=" + "))), data = base_sub))
+r_Z <- resid(lm(as.formula(paste(Z_instr, "~", paste(controls, collapse=" + "))), data = base_sub))
+partial_R2 <- summary(lm(r_R ~ r_Z))$r.squared
+
+# Tabla comparativa
+stargazer(fs,
+  type = "text", se = list(robust_se),
+  dep.var.labels = "Ingresos municipales (1ª etapa)",
+  omit = "factor\\(sigla\\)", omit.labels = "FE de estado",
+  add.lines = list(
+    c("F (instrumento, robusto)", sprintf("%.2f", F_stat)),
+    c("p-valor F", sprintf("%.4f", p_F)),
+    c("R^2 parcial (instrumento)", sprintf("%.3f", partial_R2))
+  ),
+  title = "Primera etapa: efecto del output petrolero sobre ingresos municipales",
+  no.space = TRUE, digits = 3
+)
+```
+
+En la tabla anterior se ven los resultados al hacer solo la primera etapa para evaluar la fortaleza del instrumento. Según lo discutido en clase se requiere que el instrumento cumpla con dos criterios para ser determinado como relevante y fuerte, el primero es tener un coeficiente muy significativo. En este caso se observa el valor del coeficiente del instrumento en 0.034 con una significancia de p valor menor a 0.01 entonces la cantidad de petroleo offshore influye fuertemente los ingresos fiscales municipales. El segundo elemento importante es que el valor del F Score debe ser mayor a 10, en este caso el valor es 87.78. Este valor mide cuanta variación de ingresos fiscales se explica por los shocks exógenos de petróleo, en este caso muy alto. Despues de evaluar estas dos condiciones se puede decir que, es un instrumento muy fuerte y relevante, por lo tanto, se espera que el instrumental no podría sesgar las estimaciones de IV.
+
+**4. En una tabla, presenten e interpreten los resultados de estimar por VI el efecto de (mayores) ingresos públicos (producto del petróleo) sobre el gasto público reportado en el año 2000 en Educación y Cultura, Salud y Sanitización, Transporte y Transferencias Sociales.**
+
+```{r}
+iv_educ <- ivreg(as.formula(paste("pmun_exp_funct_educ_cult2000c ~", paste(c(X, controls), collapse=" + "),
+                                  "|", paste(c(Z_instr, controls), collapse=" + "))), data = base_sub)
+
+iv_salud <- ivreg(as.formula(paste("pmun_exp_funct_health_sanit2000c ~", paste(c(X, controls), collapse=" + "),
+                                   "|", paste(c(Z_instr, controls), collapse=" + "))), data = base_sub)
+
+iv_transp <- ivreg(as.formula(paste("pmun_exp_funct_transport2000c ~", paste(c(X, controls), collapse=" + "),
+                                    "|", paste(c(Z_instr, controls), collapse=" + "))), data = base_sub)
+
+iv_welfare <- ivreg(as.formula(paste("pmun_exp_funct_welf2000c ~", paste(c(X, controls), collapse=" + "),
+                                     "|", paste(c(Z_instr, controls), collapse=" + "))), data = base_sub)
+
+
+summary(iv_educ, diagnostics = TRUE)
+summary(iv_salud, diagnostics = TRUE)
+summary(iv_transp, diagnostics = TRUE)
+summary(iv_welfare, diagnostics = TRUE)
+
+
+```
+
+```{r}
+
+stargazer(iv_educ, iv_salud, iv_transp, iv_welfare,
+          type = "text", 
+          title = "Resultados IV para gasto en 2000",
+          keep = "mun_budget_revenue2000_pred_c",
+          covariate.labels = "Ingresos fiscales (IV)",
+          dep.var.labels = c("Educación y Cultura", 
+                             "Salud y Saneamiento", 
+                             "Transporte", 
+                             "Transferencias Sociales"))
+
+```
+
+Se llevaron a cabo cuatro modelos en donde se quiso estimar por VI el efecto de (mayores) ingresos públicos (producto del petróleo) sobre el gasto público reportado en el año 2000 en Educación y Cultura, Salud y Sanitización, Transporte y Transferencias Sociales. En cada caso se incluyeron los controles dentro la especificación y la variable instrumental para ver el efecto sobre cada uno de los casos propuestos. En todos los casos se ve un valor positivo, es decir que para los casos planteados el aumento en los ingresos fiscales de las municipalidades si generan un aumento en el presupuesto que estas municipalidades tienen en educación y cultura, salud y saneamiento, transporte y transferencias sociales. Estos resultados son estadisticamente significativos al 1% en todos los casos.
+
+Especificamente para el caso de educación y cultura se ve que por cada unidad adicional monetaria per capita de ingreso fiscal, el municipio gasta 0.138 unidades adicionales per capita más en educación y cultura. En cuanto a salud y saneamiento se ve que por cada unidad adicional monetaria per capita de ingreso fiscal, el municipio gasta 0.108 unidades adicionales per capita más en salud y saneamiento. Para el transporte por cada unidad adicional monetaria per capita de ingreso fiscal, el municipio gasta 0.125 unidades adicionales per capita más en transporte. Y por último, para las transferencias sociales por cada unidad adicional monetaria per capita de ingreso fiscal, el municipio gasta 0.051 unidades adicionales per capita más en transferencias sociales.
+
+Los resultados muestran que un aumento en los ingresos fiscales municipales se traduce en incrementos significativos en las partidas presupuestarias de educación/cultura, salud, transporte y asistencia social. Sin embargo, este hallazgo refleja únicamente el efecto sobre el presupuesto asignado. La literatura (Caselli & Michaels, 2013) sugiere que estos incrementos en gasto no necesariamente se traducen en mejoras equivalentes en bienes públicos efectivos ni en bienestar ciudadano, lo que apunta a problemas de eficiencia en la ejecución.
+
+**5. En una tabla, presenten e interpreten los resultados de estimar por VI el efecto de (mayores) ingresos públicos (producto del petróleo) sobre las variables efectivas de bienestar. En particular, sobre proporción de personas que no viven en favelas en 2000 y el número de salones por millón de habitantes en el 2005. ¿Qué indican sus resultados? ¿Mayores ingresos públicos resultan en niveles del bienestar medido a través de estas variables?. En texto describa los resultados para la primera variable .**
+
+```{r}
+
+# IV para % hogares no en favelas (2000)
+iv_favelas <- ivreg(as.formula(paste("p_hhld_abovestrandard_ppl_2000 ~",
+                                     paste(c(X, controls), collapse=" + "), "|",
+                                     paste(c(Z_instr, controls), collapse=" + "))),
+                    data = base_sub)
+
+# IV para # salones por millón hab (2005)
+iv_salones <- ivreg(as.formula(paste("clroomsMunicipal_pop2005 ~",
+                                     paste(c(X, controls), collapse=" + "), "|",
+                                     paste(c(Z_instr, controls), collapse=" + "))),
+                    data = base_sub)
+
+summary(iv_favelas, diagnostics = TRUE)
+summary(iv_salones, diagnostics = TRUE)
+
+
+```
+
+```{r}
+
+# Robustos HC1 (heterocedasticidad)
+se_favelas <- sqrt(diag(vcovHC(iv_favelas, type = "HC1")))
+se_salones <- sqrt(diag(vcovHC(iv_salones, type = "HC1")))
+
+stargazer(iv_favelas, iv_salones,
+  type = "text",
+  title = "Resultados IV para bienestar",
+  keep = "mun_budget_revenue2000_pred_c",
+  covariate.labels = "Ingresos fiscales (IV)",
+  dep.var.labels = c("% no favelas (2000)",
+                     "Salones por millón (2005)")
+)
+
+```
+
+Ahora se evaluaron por VI el efecto de (mayores) ingresos públicos (producto del petróleo) sobre las variables efectivas de bienestar, especificamente sobre la proporción de personas que no viven en favelas para el año 2000 y el número de salones por millón de habitantes en el año 2005. Estos efectos pueden mostrar si realmente esos aumentos en presupuesto en diferentes areas de las municipalidades que fueron hayados tienen un efecto directo en el bienestar de las personas más allá de un aumento en transferencias monetarias presupuestales.
+
+Para el caso de la proporción de personas que no viven en favelas se ve que el resultado del coeficiente es negativo, exactamente -0.013. Esto dice que por cada aumento en una unidad monetaria de ingresos fiscales a la municipalidad, la proporción de personas que no viven en favelas cae en 1.3 puntos porcentuales. Es decir, aumenta la proporción que viven en las favelas. Este valor es significativo al 1%. Por otro lado, para el caso de la variable de salones por millón de habitantes en el 2005 el coeficiente es positivos pero es un valor muy pequeño, además indica que no es estadisticamente significativo en este caso.
+
+Este resultado muestra como a pesar de tener un aumento en los presupuestos de la municipalidad en varios frentes que podrían enfocarse en bienestar de las personas como educación, salud, transporte y transferencias monetarias no se traslada directamente al bienestar de las personas. Es probable que esos mayores presupuestos se estén enfocando en otro tipo de gastos como mayor burocracia, salarios más altos, actos de corrupción, entre otros, pero definitivamente el efecto final sobre el bienestar no esta llegando a los ciudadanos de la municipalidad. Al menos luego de ver esta variable de proporción de personas en las favelas.
