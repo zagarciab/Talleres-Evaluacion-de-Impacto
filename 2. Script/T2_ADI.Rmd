@@ -40,7 +40,7 @@ library(stargazer)
 # Carga de datos .dta
 url_data <- "https://github.com/zagarciab/Talleres-Evaluacion-de-Impacto/raw/main/3.%20Data/oil_windfall_sin10perc.dta"
 
-base <- read_dta(url_data)
+data <- read_dta(url_data)
 ```
 
 ### 0.1 Exploración de los datos
@@ -77,12 +77,12 @@ Variables de control:
 -   $X_{smgt}Γ$ corresponde a un vector de controles y sus coeficientes correspondientes. Este vector contiene:
 
     -   $DistFederalCapital_{m}$ distancia a la capital federal.
-    -    $DistStateCapital_{m}$ distancia a la capital estatal.
-    -    $Latitud_{m}$ coordenada geográfica.
-    -    $Logitude_{m}$ coordenada geográfica.
-    -    $StateCapital_{m}$ indicador si es capital estatal.
-    -    $Coastal_{m}$ indica si el municipio está en la costa.
-    -    $Onshore_{m}$ indica si tiene capos petroleros en tierra.
+    -   $DistStateCapital_{m}$ distancia a la capital estatal.
+    -   $Latitud_{m}$ coordenada geográfica.
+    -   $Logitude_{m}$ coordenada geográfica.
+    -   $StateCapital_{m}$ indicador si es capital estatal.
+    -   $Coastal_{m}$ indica si el municipio está en la costa.
+    -   $Onshore_{m}$ indica si tiene capos petroleros en tierra.
 
 Donde, los efectos fijos son:
 
